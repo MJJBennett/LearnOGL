@@ -1,12 +1,35 @@
 /** Source: https://learnopengl.com/
  *  
- * All code is purely for learning purposes.
+ * All code is copied or adapted purely for learning purposes.
  */
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "utility.h"
+
+#include <iostream>
+#include <fstream>
+
+std::string readFile(const char *filePath) {
+    //source: https://badvertex.com/2012/11/20/how-to-load-a-glsl-shader-in-opengl-using-c.html
+    std::string content;
+    std::ifstream fileStream(filePath, std::ios::in);
+
+    if(!fileStream.is_open()) {
+        std::cerr << "Could not read file " << filePath << ": File does not exist." << std::endl;
+        return "";
+    }
+
+    std::string line = "";
+    while(!fileStream.eof()) {
+        std::getline(fileStream, line);
+        content.append(line + "\n");
+    }
+
+    fileStream.close();
+    return content;
+}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -22,8 +45,10 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
     auto window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
     if (window == nullptr) {
         print("Failed to create GLFW window.");
@@ -38,8 +63,79 @@ int main() {
         return -1;
     }
 
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.0f,  0.5f, 0.0f
+    };
+    GLuint VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    GLuint vertexShader;
+    vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fragmentShader;
+    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    //File I/O
+    std::string vs = readFile("ShaderOne.vert");
+    std::string fs = readFile("ShaderOne.frag");
+    const char *vertexShader_c = vs.c_str();
+    const char *fragmentShader_c = fs.c_str();
+
+    glShaderSource(vertexShader, 1, &vertexShader_c, nullptr);
+    glCompileShader(vertexShader);
+    int     success = 1;
+    char    infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+
+    glShaderSource(fragmentShader, 1, &fragmentShader_c, nullptr);
+    glCompileShader(fragmentShader);
+    success = 1;
+    char    infoLog_[512];
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog_);
+        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog_ << std::endl;
+    }
+
+    GLuint shaderProgram;
+    shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if(!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog_ << std::endl;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
+
+        glClearColor(0.2f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(shaderProgram);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
