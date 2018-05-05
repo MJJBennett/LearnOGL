@@ -8,29 +8,6 @@
 
 #include "utility.h"
 
-#include <iostream>
-#include <fstream>
-
-std::string readFile(const char *filePath) {
-    //source: https://badvertex.com/2012/11/20/how-to-load-a-glsl-shader-in-opengl-using-c.html
-    std::string content;
-    std::ifstream fileStream(filePath, std::ios::in);
-
-    if(!fileStream.is_open()) {
-        std::cerr << "Could not read file " << filePath << ": File does not exist." << std::endl;
-        return "";
-    }
-
-    std::string line = "";
-    while(!fileStream.eof()) {
-        std::getline(fileStream, line);
-        content.append(line + "\n");
-    }
-
-    fileStream.close();
-    return content;
-}
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
@@ -63,17 +40,24 @@ int main() {
         return -1;
     }
 
-    GLuint VAO;
+    GLuint VAO, VBO, EBO;
+
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
+        //bottom left, bottom right, top middle
+        -0.5f, -0.5f, 0.0f, 
         0.5f, -0.5f, 0.0f,
-        0.0f,  0.5f, 0.0f
+        0.0f,  0.5f, 0.0f,
+        //bottom left, bottom right, top left 
+        0.5f, -0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,
+        -0.5f,  0.5f, 0.0f
     };
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
@@ -86,8 +70,8 @@ int main() {
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
     //File I/O
-    std::string vs = readFile("ShaderOne.vert");
-    std::string fs = readFile("ShaderOne.frag");
+    std::string vs = readFile("../ShaderOne.vert");
+    std::string fs = readFile("../ShaderOne.frag");
     const char *vertexShader_c = vs.c_str();
     const char *fragmentShader_c = fs.c_str();
 
@@ -134,7 +118,7 @@ int main() {
 
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
