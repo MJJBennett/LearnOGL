@@ -6,7 +6,7 @@ std::string readFile(std::string path) {
     fs.open(path, std::ifstream::in);
     
     if (!fs.good()) {
-        print_error("Could not read from file " + path + "");
+        print(logl::error(), "Could not read from file " + path + "");
         return "";
     }
 
