@@ -57,10 +57,29 @@ int logl::Window::initialize(int width, int height, std::optional<WindowOpts> op
 
 bool logl::Window::updateWindow()
 {
-    if (!init_ || glfwWindowShouldClose(window_)) return false;
     glfwSwapBuffers(window_);
     glfwPollEvents();
-    return true;
+    return init_ && !glfwWindowShouldClose(window_);
+}
+
+bool logl::Window::keyDown(const Key::Type& key)
+{
+    return glfwGetKey(window_, key) == GLFW_PRESS;
+}
+
+void logl::Window::close()
+{
+    glfwSetWindowShouldClose(window_, true);
+}
+
+void logl::Window::clear()
+{
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+void logl::Window::setColour(double r, double g, double b, double a)
+{
+    glClearColor(r, g, b, a);
 }
 
 void logl::Window::startGLFW()
